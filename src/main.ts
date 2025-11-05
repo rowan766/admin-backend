@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,6 +14,13 @@ async function bootstrap() {
         transform: true,
       }),
     );
+
+      // 全局异常过滤器
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // 全局响应拦截器
+  app.useGlobalInterceptors(new TransformInterceptor());
+  
     // 配置 Swagger
   const config = new DocumentBuilder()
     .setTitle('后台管理系统 API')
