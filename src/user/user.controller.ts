@@ -16,6 +16,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { AssignRolesDto } from './dto/assign-roles.dto';
 
 @ApiTags('用户管理')
 @Controller('user')
@@ -97,5 +98,39 @@ export class UserController {
   @ApiResponse({ status: 401, description: '未授权' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.userService.remove(id);
+  }
+
+  @Post(':id/roles')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '为用户分配角色' })
+  @ApiResponse({ status: 200, description: '分配成功' })
+  @ApiResponse({ status: 404, description: '用户不存在或部分角色不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  assignRoles(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() assignRolesDto: AssignRolesDto,
+  ) {
+    return this.userService.assignRoles(id, assignRolesDto.roleIds);
+  }
+
+  @Get('current/menus')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前用户的菜单树（含按钮）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  getUserMenus(@Request() req) {
+    return this.userService.getUserMenus(req.user.id);
+  }
+
+  @Get('current/permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前用户的权限列表' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  getUserPermissions(@Request() req) {
+    return this.userService.getUserPermissions(req.user.id);
   }
 }

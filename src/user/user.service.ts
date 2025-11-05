@@ -43,10 +43,27 @@ export class UserService {
         email: true,
         phone: true,
         avatar: true,
+        departmentId: true,
         status: true,
         createdAt: true,
         updatedAt: true,
-        // 不返回密码
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
       },
     });
     return users;
@@ -63,9 +80,27 @@ export class UserService {
         email: true,
         phone: true,
         avatar: true,
+        departmentId: true,
         status: true,
         createdAt: true,
         updatedAt: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -141,5 +176,145 @@ export class UserService {
     });
 
     return { message: '密码修改成功' };
+  }
+
+  // 为用户分配角色
+  async assignRoles(userId: number, roleIds: number[]) {
+    // 检查用户是否存在
+    await this.findOne(userId);
+
+    // 检查所有角色是否存在
+    const roles = await this.prisma.role.findMany({
+      where: { id: { in: roleIds } },
+    });
+
+    if (roles.length !== roleIds.length) {
+      throw new NotFoundException('部分角色不存在');
+    }
+
+    // 使用事务：先删除旧的角色关联，再创建新的关联
+    return await this.prisma.$transaction(async (tx) => {
+      // 删除旧的角色关联
+      await tx.userRole.deleteMany({
+        where: { userId },
+      });
+
+      // 创建新的角色关联
+      if (roleIds.length > 0) {
+        await tx.userRole.createMany({
+          data: roleIds.map((roleId) => ({
+            userId,
+            roleId,
+          })),
+        });
+      }
+
+      // 返回更新后的用户信息
+      return await tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          username: true,
+          nickname: true,
+          email: true,
+          phone: true,
+          avatar: true,
+          departmentId: true,
+          status: true,
+          roles: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      });
+    });
+  }
+
+  // 获取用户的菜单权限（树形结构）
+  async getUserMenus(userId: number) {
+    // 查询用户的所有角色及菜单
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            menus: {
+              include: {
+                menu: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 收集所有菜单（去重）
+    const menuMap = new Map();
+    for (const userRole of userRoles) {
+      for (const roleMenu of userRole.role.menus) {
+        const menu = roleMenu.menu;
+        // 只返回启用且可见的菜单
+        if (menu.status === 1 && menu.visible === 1) {
+          menuMap.set(menu.id, menu);
+        }
+      }
+    }
+
+    // 转换为数组并按 sort 排序
+    const menus = Array.from(menuMap.values()).sort((a, b) => a.sort - b.sort);
+
+    // 构建树形结构
+    return this.buildMenuTree(menus);
+  }
+
+  // 获取用户的权限列表
+  async getUserPermissions(userId: number) {
+    // 查询用户的所有角色及权限
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 收集所有权限（去重）
+    const permissionMap = new Map();
+    for (const userRole of userRoles) {
+      for (const rolePermission of userRole.role.permissions) {
+        const permission = rolePermission.permission;
+        // 只返回启用的权限
+        if (permission.status === 1) {
+          permissionMap.set(permission.id, permission);
+        }
+      }
+    }
+
+    return Array.from(permissionMap.values());
+  }
+
+  // 构建菜单树
+  private buildMenuTree(menus: any[], parentId: number | null = null): any[] {
+    const result: any[] = [];
+
+    for (const menu of menus) {
+      if (menu.parentId === parentId) {
+        const children = this.buildMenuTree(menus, menu.id);
+        if (children.length > 0) {
+          menu.children = children;
+        }
+        result.push(menu);
+      }
+    }
+
+    return result;
   }
 }

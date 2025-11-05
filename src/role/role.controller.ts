@@ -1,0 +1,113 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { RoleService } from './role.service';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { AssignMenusDto } from './dto/assign-menus.dto';
+import { AssignPermissionsDto } from './dto/assign-permissions.dto';
+import { SetDataScopeDto } from './dto/set-data-scope.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@ApiTags('角色管理')
+@Controller('role')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class RoleController {
+  constructor(private readonly roleService: RoleService) {}
+
+  @Post()
+  @ApiOperation({ summary: '创建角色' })
+  @ApiResponse({ status: 201, description: '创建成功' })
+  @ApiResponse({ status: 409, description: '角色名称或编码已存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  create(@Body() createRoleDto: CreateRoleDto) {
+    return this.roleService.create(createRoleDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: '获取角色列表' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  findAll() {
+    return this.roleService.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '获取角色详情' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.roleService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: '更新角色' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResponse({ status: 409, description: '角色名称或编码已存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRoleDto: UpdateRoleDto,
+  ) {
+    return this.roleService.update(id, updateRoleDto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: '删除角色' })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResponse({ status: 409, description: '该角色下有用户，无法删除' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.roleService.remove(id);
+  }
+
+  @Post(':id/menus')
+  @ApiOperation({ summary: '为角色分配菜单权限' })
+  @ApiResponse({ status: 200, description: '分配成功' })
+  @ApiResponse({ status: 404, description: '角色不存在或部分菜单不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  assignMenus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() assignMenusDto: AssignMenusDto,
+  ) {
+    return this.roleService.assignMenus(id, assignMenusDto);
+  }
+
+  @Post(':id/permissions')
+  @ApiOperation({ summary: '为角色分配API权限' })
+  @ApiResponse({ status: 200, description: '分配成功' })
+  @ApiResponse({ status: 404, description: '角色不存在或部分权限不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  assignPermissions(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() assignPermissionsDto: AssignPermissionsDto,
+  ) {
+    return this.roleService.assignPermissions(id, assignPermissionsDto);
+  }
+
+  @Post(':id/data-scope')
+  @ApiOperation({ summary: '设置角色的数据权限范围' })
+  @ApiResponse({ status: 200, description: '设置成功' })
+  @ApiResponse({ status: 404, description: '角色不存在或部分部门不存在' })
+  @ApiResponse({ status: 400, description: '自定义数据权限必须指定部门列表' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  setDataScope(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() setDataScopeDto: SetDataScopeDto,
+  ) {
+    return this.roleService.setDataScope(id, setDataScopeDto);
+  }
+}
