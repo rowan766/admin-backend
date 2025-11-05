@@ -15,6 +15,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @ApiTags('用户管理')
 @Controller('user')
@@ -48,6 +49,18 @@ export class UserController {
   getProfile(@Request() req) {
     // req.user 是 JwtStrategy 中 validate 方法返回的用户信息
     return req.user;
+  }
+
+  @Patch('password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '修改密码' })
+  @ApiResponse({ status: 200, description: '修改成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 409, description: '旧密码错误' })
+  updatePassword(@Request() req, @Body() updatePasswordDto: UpdatePasswordDto) {
+    // req.user.id 是当前登录用户的 ID
+    return this.userService.updatePassword(req.user.id, updatePasswordDto);
   }
 
   @Get(':id')
