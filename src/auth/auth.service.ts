@@ -57,4 +57,13 @@ export class AuthService {
       },
     };
   }
+
+    // 登出（简单版本，主要由前端清除 token）
+    async logout() {
+    // 这里可以记录登出日志
+    // 或者清除 refresh token（如果有的话）
+    return {
+        message: '登出成功',
+        };
+    }
 }
