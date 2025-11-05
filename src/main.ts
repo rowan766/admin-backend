@@ -7,6 +7,16 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 配置 CORS（跨域）
+  app.enableCors({
+    origin: process.env.NODE_ENV === 'production' 
+    ? ['https://saw.ink']  // 生产环境只允许指定域名
+    : true,  // 开发环境允许所有
+    credentials: true, // 允许携带 cookie
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization',
+  });
     // 全局验证管道
     app.useGlobalPipes(
       new ValidationPipe({
@@ -20,7 +30,7 @@ async function bootstrap() {
 
   // 全局响应拦截器
   app.useGlobalInterceptors(new TransformInterceptor());
-  
+
     // 配置 Swagger
   const config = new DocumentBuilder()
     .setTitle('后台管理系统 API')
