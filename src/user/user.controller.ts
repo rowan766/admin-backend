@@ -123,14 +123,4 @@ export class UserController {
   getUserMenus(@Request() req) {
     return this.userService.getUserMenus(req.user.id);
   }
-
-  @Get('current/permissions')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '获取当前用户的权限列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 401, description: '未授权' })
-  getUserPermissions(@Request() req) {
-    return this.userService.getUserPermissions(req.user.id);
-  }
 }

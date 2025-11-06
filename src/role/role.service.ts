@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignMenusDto } from './dto/assign-menus.dto';
-import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { SetDataScopeDto } from './dto/set-data-scope.dto';
 
 @Injectable()
@@ -62,17 +61,6 @@ export class RoleService {
             },
           },
         },
-        permissions: {
-          include: {
-            permission: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-              },
-            },
-          },
-        },
         departments: {
           include: {
             department: {
@@ -109,11 +97,6 @@ export class RoleService {
         menus: {
           include: {
             menu: true,
-          },
-        },
-        permissions: {
-          include: {
-            permission: true,
           },
         },
         departments: {
@@ -219,48 +202,6 @@ export class RoleService {
           menus: {
             include: {
               menu: true,
-            },
-          },
-        },
-      });
-    });
-  }
-
-  // 为角色分配API权限
-  async assignPermissions(id: number, assignPermissionsDto: AssignPermissionsDto) {
-    await this.findOne(id); // 检查角色是否存在
-
-    // 检查所有权限是否存在
-    const permissions = await this.prisma.permission.findMany({
-      where: { id: { in: assignPermissionsDto.permissionIds } },
-    });
-
-    if (permissions.length !== assignPermissionsDto.permissionIds.length) {
-      throw new NotFoundException('部分权限不存在');
-    }
-
-    // 使用事务：先删除旧的权限关联，再创建新的关联
-    return await this.prisma.$transaction(async (tx) => {
-      // 删除旧的权限关联
-      await tx.rolePermission.deleteMany({
-        where: { roleId: id },
-      });
-
-      // 创建新的权限关联
-      await tx.rolePermission.createMany({
-        data: assignPermissionsDto.permissionIds.map((permissionId) => ({
-          roleId: id,
-          permissionId,
-        })),
-      });
-
-      // 返回更新后的角色信息
-      return await tx.role.findUnique({
-        where: { id },
-        include: {
-          permissions: {
-            include: {
-              permission: true,
             },
           },
         },

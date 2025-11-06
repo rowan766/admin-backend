@@ -268,39 +268,6 @@ export class UserService {
     return this.buildMenuTree(menus);
   }
 
-  // 获取用户的权限列表
-  async getUserPermissions(userId: number) {
-    // 查询用户的所有角色及权限
-    const userRoles = await this.prisma.userRole.findMany({
-      where: { userId },
-      include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // 收集所有权限（去重）
-    const permissionMap = new Map();
-    for (const userRole of userRoles) {
-      for (const rolePermission of userRole.role.permissions) {
-        const permission = rolePermission.permission;
-        // 只返回启用的权限
-        if (permission.status === 1) {
-          permissionMap.set(permission.id, permission);
-        }
-      }
-    }
-
-    return Array.from(permissionMap.values());
-  }
-
   // 构建菜单树
   private buildMenuTree(menus: any[], parentId: number | null = null): any[] {
     const result: any[] = [];

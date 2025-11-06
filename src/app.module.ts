@@ -10,8 +10,6 @@ import { DepartmentModule } from './department/department.module';
 import { DictModule } from './dict/dict.module';
 import { RoleModule } from './role/role.module';
 import { MenuModule } from './menu/menu.module';
-import { PermissionModule } from './permission/permission.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -25,7 +23,6 @@ import { PermissionModule } from './permission/permission.module';
     DictModule,
     RoleModule,
     MenuModule,
-    PermissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

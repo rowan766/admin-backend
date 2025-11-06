@@ -14,7 +14,6 @@ import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignMenusDto } from './dto/assign-menus.dto';
-import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { SetDataScopeDto } from './dto/set-data-scope.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -84,18 +83,6 @@ export class RoleController {
     @Body() assignMenusDto: AssignMenusDto,
   ) {
     return this.roleService.assignMenus(id, assignMenusDto);
-  }
-
-  @Post(':id/permissions')
-  @ApiOperation({ summary: '为角色分配API权限' })
-  @ApiResponse({ status: 200, description: '分配成功' })
-  @ApiResponse({ status: 404, description: '角色不存在或部分权限不存在' })
-  @ApiResponse({ status: 401, description: '未授权' })
-  assignPermissions(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() assignPermissionsDto: AssignPermissionsDto,
-  ) {
-    return this.roleService.assignPermissions(id, assignPermissionsDto);
   }
 
   @Post(':id/data-scope')
