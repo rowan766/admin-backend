@@ -5,7 +5,9 @@
       "Bash(nest g controller:*)",
       "Bash(nest g service:*)",
       "Bash(npm run build:*)",
-      "Bash(rd /s /q \"D:\\workspace_20251105\\admin-backend\\src\\permission\")"
+      "Bash(rd /s /q \"D:\\workspace_20251105\\admin-backend\\src\\permission\")",
+      "Bash(npm install:*)",
+      "Bash(pnpm run build:*)"
     ],
     "deny": [],
     "ask": []

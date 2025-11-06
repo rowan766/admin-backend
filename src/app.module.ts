@@ -10,6 +10,7 @@ import { DepartmentModule } from './department/department.module';
 import { DictModule } from './dict/dict.module';
 import { RoleModule } from './role/role.module';
 import { MenuModule } from './menu/menu.module';
+import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,6 +24,7 @@ import { MenuModule } from './menu/menu.module';
     DictModule,
     RoleModule,
     MenuModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
