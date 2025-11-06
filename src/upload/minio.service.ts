@@ -112,4 +112,27 @@ export class MinioService implements OnModuleInit {
   getBucketName(bucketType: 'userAvatar' | 'product' | 'document' | 'archive' | 'common'): string {
     return this.buckets[bucketType];
   }
+
+  // 获取文件流（用于下载）
+  async getFileStream(fileName: string, bucketType: 'userAvatar' | 'product' | 'document' | 'archive' | 'common') {
+    const bucketName = this.buckets[bucketType];
+    return await this.minioClient.getObject(bucketName, fileName);
+  }
+
+  // 获取文件元数据
+  async getFileMetadata(fileName: string, bucketType: 'userAvatar' | 'product' | 'document' | 'archive' | 'common') {
+    const bucketName = this.buckets[bucketType];
+    return await this.minioClient.statObject(bucketName, fileName);
+  }
+
+  // 检查文件是否存在
+  async fileExists(fileName: string, bucketType: 'userAvatar' | 'product' | 'document' | 'archive' | 'common'): Promise<boolean> {
+    try {
+      const bucketName = this.buckets[bucketType];
+      await this.minioClient.statObject(bucketName, fileName);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
 }

@@ -43,6 +43,8 @@ export class UserService {
         email: true,
         phone: true,
         avatar: true,
+        avatarId: true,
+        avatarName: true,
         departmentId: true,
         status: true,
         createdAt: true,
@@ -51,6 +53,7 @@ export class UserService {
           select: {
             id: true,
             name: true,
+            code: true,
           },
         },
         roles: {
@@ -80,6 +83,8 @@ export class UserService {
         email: true,
         phone: true,
         avatar: true,
+        avatarId: true,
+        avatarName: true,
         departmentId: true,
         status: true,
         createdAt: true,
@@ -88,6 +93,7 @@ export class UserService {
           select: {
             id: true,
             name: true,
+            code: true,
           },
         },
         roles: {
@@ -125,9 +131,19 @@ export class UserService {
         email: true,
         phone: true,
         avatar: true,
+        avatarId: true,
+        avatarName: true,
+        departmentId: true,
         status: true,
         createdAt: true,
         updatedAt: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
       },
     });
 
@@ -219,6 +235,8 @@ export class UserService {
           email: true,
           phone: true,
           avatar: true,
+          avatarId: true,
+          avatarName: true,
           departmentId: true,
           status: true,
           roles: {

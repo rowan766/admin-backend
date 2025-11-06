@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsOptional, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsEmail, IsOptional, MinLength, MaxLength, IsInt } from 'class-validator';
 
 export class CreateUserDto {
   @ApiProperty({ description: '用户名', example: 'admin' })
@@ -30,4 +30,20 @@ export class CreateUserDto {
   @IsOptional()
   @MaxLength(20)
   phone?: string;
+
+  @ApiProperty({ description: '所属部门ID', example: 1, required: false })
+  @IsInt()
+  @IsOptional()
+  departmentId?: number;
+
+  @ApiProperty({ description: '头像文件ID', example: 1, required: false })
+  @IsInt()
+  @IsOptional()
+  avatarId?: number;
+
+  @ApiProperty({ description: '头像文件名', example: '头像.jpg', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  avatarName?: string;
 }

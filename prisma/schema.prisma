@@ -17,7 +17,9 @@ model User {
   nickname     String?  @db.VarChar(50)
   email        String?  @unique @db.VarChar(100)
   phone        String?  @db.VarChar(20)
-  avatar       String?  @db.VarChar(255)
+  avatar       String?  @db.VarChar(255) // 头像文件路径（保留兼容）
+  avatarId     Int?     @map("avatar_id") // 头像文件ID
+  avatarName   String?  @map("avatar_name") @db.VarChar(255) // 头像文件名
   departmentId Int?     @map("department_id") // 所属部门
   status       Int      @default(1) @db.SmallInt // 1:启用 0:禁用
   createdAt    DateTime @default(now()) @map("created_at")
@@ -168,6 +170,27 @@ model RoleDepartment {
 
   @@id([roleId, departmentId])
   @@map("sys_role_department")
+}
+
+// ==================== 文件管理 ====================
+
+// 文件上传记录表
+model File {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id") // 上传用户ID
+  bucketName   String   @map("bucket_name") @db.VarChar(100) // 存储桶名称
+  bucketType   String   @map("bucket_type") @db.VarChar(50) // 桶类型：userAvatar/product/document/archive/common
+  folder       String   @db.VarChar(100) // 文件夹路径（如：avatars、files）
+  fileName     String   @map("file_name") @db.VarChar(255) // 存储的文件名（含时间戳和路径）
+  originalName String   @map("original_name") @db.VarChar(255) // 原始文件名
+  fileSize     Int      @map("file_size") // 文件大小（字节）
+  mimeType     String   @map("mime_type") @db.VarChar(100) // 文件MIME类型
+  fileUrl      String   @map("file_url") @db.Text // 文件访问URL
+  status       Int      @default(1) @db.SmallInt // 状态：1正常 0已删除
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("sys_file")
 }
 
 // ==================== 数据字典 ====================
