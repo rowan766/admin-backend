@@ -56,8 +56,11 @@ export class MinioService implements OnModuleInit {
   ) {
     const bucketName = this.buckets[bucketType];
 
-    // 生成唯一文件名
+    // 生成唯一文件名（保留原始中文文件名）
     const fileName = `${folder}/${Date.now()}-${file.originalname}`;
+
+    // 对文件名进行 URL 编码，仅用于 HTTP 响应头
+    const encodedOriginalName = encodeURIComponent(file.originalname);
 
     // 上传到 MinIO
     await this.minioClient.putObject(
@@ -67,6 +70,8 @@ export class MinioService implements OnModuleInit {
       file.size,
       {
         'Content-Type': file.mimetype,
+        // 添加 Content-Disposition 头，确保下载时文件名正确显示
+        'Content-Disposition': `attachment; filename="${encodedOriginalName}"; filename*=UTF-8''${encodedOriginalName}`,
       },
     );
 
@@ -80,6 +85,7 @@ export class MinioService implements OnModuleInit {
     return {
       bucket: bucketName,
       fileName,
+      originalName: file.originalname, // 返回原始文件名供前端显示
       url,
       size: file.size,
       mimetype: file.mimetype,
