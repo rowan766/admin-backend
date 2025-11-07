@@ -20,6 +20,28 @@ export class UserService {
       throw new ConflictException('用户名已存在');
     }
 
+    // 检查邮箱是否已存在
+    if (createUserDto.email) {
+      const existEmail = await this.prisma.user.findUnique({
+        where: { email: createUserDto.email },
+      });
+
+      if (existEmail) {
+        throw new ConflictException('邮箱已被使用');
+      }
+    }
+
+    // 检查部门是否存在
+    if (createUserDto.departmentId) {
+      const department = await this.prisma.department.findUnique({
+        where: { id: createUserDto.departmentId },
+      });
+
+      if (!department) {
+        throw new NotFoundException(`部门ID ${createUserDto.departmentId} 不存在`);
+      }
+    }
+
     // 加密密码
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
