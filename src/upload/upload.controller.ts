@@ -154,11 +154,9 @@ export class UploadController {
 
   // ========== 下载/预览接口 ==========
 
-  // 预览或下载图片
+  // 预览或下载图片（无需认证，可直接用于img标签）
   @Get('image/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '预览或下载图片' })
+  @ApiOperation({ summary: '预览或下载图片（无需认证）' })
   @ApiQuery({
     name: 'download',
     description: '是否下载（false则在浏览器中预览）',
