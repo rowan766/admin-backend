@@ -11,7 +11,7 @@ async function bootstrap() {
   // 配置 CORS（跨域）
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' 
-    ? ['https://saw.ink']  // 生产环境只允许指定域名
+    ? ['http://8.130.84.165']  // 生产环境只允许指定域名
     : true,  // 开发环境允许所有
     credentials: true, // 允许携带 cookie
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
