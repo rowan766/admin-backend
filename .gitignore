@@ -92,6 +92,7 @@ desktop.ini
 # 注意：docker-compose.yml 应该提交
 # .dockerignore 应该提交
 docker-compose.override.yml
+data/
 
 # ==================== 其他 ====================
 # 锁文件冲突备份

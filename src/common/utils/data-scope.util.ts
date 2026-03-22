@@ -1,4 +1,14 @@
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../infrastructure';
+
+enum DataScopeType {
+  All = 1,
+  DepartmentAndChildren = 2,
+  DepartmentOnly = 3,
+  SelfOnly = 4,
+  Custom = 5,
+}
+
+type DataScopeDepartmentIds = number[] | null;
 
 export class DataScopeUtil {
   /**
@@ -7,21 +17,25 @@ export class DataScopeUtil {
    * @param userId 用户ID
    * @returns 部门ID列表（用于 WHERE departmentId IN (...)），null 表示全部数据权限
    */
-  static async getDepartmentIds(prisma: PrismaService, userId: number): Promise<number[] | null> {
+  static async getDepartmentIds(
+    prisma: PrismaService,
+    userId: number,
+  ): Promise<DataScopeDepartmentIds> {
     // 获取用户信息（含部门）
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        departmentId: true,
         roles: {
-          include: {
+          select: {
             role: {
-              include: {
+              select: {
+                dataScope: true,
                 departments: true,
               },
             },
           },
         },
-        department: true,
       },
     });
 
@@ -30,36 +44,39 @@ export class DataScopeUtil {
     }
 
     const departmentIds = new Set<number>();
+    let departmentAndChildrenIds: number[] | undefined;
 
     // 遍历用户的所有角色
     for (const userRole of user.roles) {
       const role = userRole.role;
 
       switch (role.dataScope) {
-        case 1: // 全部数据权限
+        case DataScopeType.All:
           // 返回 null 表示不需要过滤部门
           return null;
 
-        case 2: // 本部门及以下数据权限
+        case DataScopeType.DepartmentAndChildren:
           if (user.departmentId) {
-            // 获取本部门及所有子部门
-            const deptIds = await this.getAllChildDepartmentIds(prisma, user.departmentId);
-            deptIds.forEach((id) => departmentIds.add(id));
+            departmentAndChildrenIds ??= await this.getDepartmentSubtreeIds(
+              prisma,
+              user.departmentId,
+            );
+            departmentAndChildrenIds.forEach((id) => departmentIds.add(id));
           }
           break;
 
-        case 3: // 本部门数据权限
+        case DataScopeType.DepartmentOnly:
           if (user.departmentId) {
             departmentIds.add(user.departmentId);
           }
           break;
 
-        case 4: // 仅本人数据权限
+        case DataScopeType.SelfOnly:
           // 这种情况需要额外处理，通常是添加 userId 过滤条件
           // 这里返回空数组，调用方需要自行添加 userId 过滤
           return []; // 返回空数组表示仅本人
 
-        case 5: // 自定义数据权限
+        case DataScopeType.Custom:
           // 添加角色关联的部门
           role.departments.forEach((dept) => {
             departmentIds.add(dept.departmentId);
@@ -77,20 +94,41 @@ export class DataScopeUtil {
    * @param departmentId 部门ID
    * @returns 部门ID列表（包含自身）
    */
-  private static async getAllChildDepartmentIds(
+  private static async getDepartmentSubtreeIds(
     prisma: PrismaService,
     departmentId: number,
   ): Promise<number[]> {
-    const result: number[] = [departmentId];
-
-    // 递归查询子部门
-    const children = await prisma.department.findMany({
-      where: { parentId: departmentId },
+    const departments = await prisma.department.findMany({
+      select: {
+        id: true,
+        parentId: true,
+      },
     });
+    const childrenMap = new Map<number, number[]>();
 
-    for (const child of children) {
-      const childIds = await this.getAllChildDepartmentIds(prisma, child.id);
-      result.push(...childIds);
+    for (const department of departments) {
+      if (department.parentId === null) {
+        continue;
+      }
+
+      const children = childrenMap.get(department.parentId) ?? [];
+      children.push(department.id);
+      childrenMap.set(department.parentId, children);
+    }
+
+    const result: number[] = [];
+    const queue = [departmentId];
+    const visited = new Set<number>();
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (currentId === undefined || visited.has(currentId)) {
+        continue;
+      }
+
+      visited.add(currentId);
+      result.push(currentId);
+      queue.push(...(childrenMap.get(currentId) ?? []));
     }
 
     return result;

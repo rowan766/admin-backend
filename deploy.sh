@@ -15,6 +15,15 @@ BACKEND_DIR="$PROJECT_DIR/backend"
 
 cd $BACKEND_DIR || exit 1
 
+if [ -f .env ]; then
+    set -a
+    . ./.env
+    set +a
+fi
+
+BACKEND_HOST_PORT="${BACKEND_HOST_PORT:-3101}"
+SERVER_HOST="${SERVER_HOST:-8.130.84.165}"
+
 # 检测代码变化
 echo -e "${YELLOW}📊 检测文件变化...${NC}"
 
@@ -85,7 +94,7 @@ RETRY=0
 HEALTH_CHECK=""
 
 while [ $RETRY -lt $MAX_RETRY ]; do
-    HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api-docs)
+    HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${BACKEND_HOST_PORT}/api-docs")
     
     if [ "$HEALTH_CHECK" = "200" ] || [ "$HEALTH_CHECK" = "302" ]; then
         echo -e "${GREEN}✅ 健康检查通过 (HTTP $HEALTH_CHECK)${NC}"
@@ -131,5 +140,5 @@ if [ "$PRISMA_CHANGED" = true ]; then
 fi
 
 echo -e ""
-echo -e "${YELLOW}访问地址:${NC} http://8.130.84.165:3001/api-docs"
+echo -e "${YELLOW}访问地址:${NC} http://${SERVER_HOST}:${BACKEND_HOST_PORT}/api-docs"
 echo -e "${YELLOW}查看日志:${NC} docker-compose logs -f backend"

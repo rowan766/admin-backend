@@ -19,13 +19,34 @@ export class TransformInterceptor<T>
     const request = context.switchToHttp().getRequest();
 
     return next.handle().pipe(
-      map((data) => ({
-        code: 200,
-        message: '请求成功',
-        data,
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      })),
+      map((data) => {
+        if (this.isResponseEnvelope(data)) {
+          return {
+            ...data,
+            path: data.path || request.originalUrl,
+            timestamp: data.timestamp || new Date().toISOString(),
+          };
+        }
+
+        return {
+          code: 200,
+          message: '请求成功',
+          data,
+          timestamp: new Date().toISOString(),
+          path: request.originalUrl,
+        };
+      }),
+    );
+  }
+
+  private isResponseEnvelope(data: unknown): data is IResponse<T> {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'code' in data &&
+      'message' in data &&
+      'timestamp' in data &&
+      'path' in data
     );
   }
 }

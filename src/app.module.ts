@@ -1,16 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from './prisma/prisma.module';
+import { PrismaModule } from './infrastructure';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UserModule } from './user/user.module';
-import { AuthModule } from './auth/auth.module';
-import { UploadModule } from './upload/upload.module';
-import { DepartmentModule } from './department/department.module';
-import { DictModule } from './dict/dict.module';
-import { RoleModule } from './role/role.module';
-import { MenuModule } from './menu/menu.module';
-import { RedisModule } from './redis/redis.module';
+import {
+  UserModule,
+  AuthModule,
+  UploadModule,
+  DepartmentModule,
+  DictModule,
+  RoleModule,
+  MenuModule,
+  SystemModule,
+} from './modules';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,7 +27,7 @@ import { RedisModule } from './redis/redis.module';
     DictModule,
     RoleModule,
     MenuModule,
-    RedisModule,
+    SystemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

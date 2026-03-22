@@ -1,386 +1,327 @@
-## 📋 代码更新完整指南
+# Admin Backend 部署说明
 
-### 🔧 场景一：只修改了代码（最常见）
+本文档分两部分：
 
-**适用情况：**
-
-* 修改了 `src/` 目录下的业务逻辑
-* 修改了控制器、服务、DTO 等
-* 没有改动数据库表结构
-
-**操作步骤：**
-
-bash
-
-```bash
-# ========== 本地操作 ==========
-# 1. 在本地修改代码...
-
-# ========== 上传代码 ==========
-# 2. 打开 XFTP，上传修改的文件到服务器
-#    目标路径：/home/nestjs-project1/backend/src/
-
-# ========== 服务器操作 ==========
-# 3. SSH 连接服务器
-ssh root@8.130.84.165
-
-# 4. 执行部署脚本
-/home/nestjs-project1/deploy.sh
-
-# 完成！
-```
-
-**预期结果：**
-
-* ✅ 自动检测代码变化
-* ✅ 只重新构建 backend 容器
-* ✅ 不影响数据库
-* ✅ 大约耗时 2-3 分钟
+1. Windows 本地开发部署
+2. Linux 服务器更新部署
 
 ---
 
-### 🗄️ 场景二：只修改了数据库表结构
+## 1. Windows 本地开发部署
 
-**适用情况：**
+### 1.1 适用场景
 
-* 修改了 `prisma/schema.prisma`
-* 添加/删除/修改了表或字段
-* 没有改动业务代码
+适用于你现在这台 Windows 电脑，使用 Docker Desktop 运行：
 
-**操作步骤：**
+- PostgreSQL
+- MinIO
+- Redis
+- NestJS 后端
 
-bash
+### 1.2 前提条件
 
-```bash
-# ========== 本地操作 ==========
-# 1. 修改 prisma/schema.prisma
-# 比如添加一个字段：
-# model User {
-#   id        Int      @id @default(autoincrement())
-#   username  String
-#   newField  String?  // ← 新增字段
-# }
+开始前请确认：
 
-# 2. 创建迁移（可选，推荐）
-pnpm prisma migrate dev --name add_new_field
+- 已安装并启动 Docker Desktop
+- 当前目录是项目根目录 `admin-backend`
+- 项目里已经有 `.env` 和 `.env.docker`
 
-# ========== 上传代码 ==========
-# 3. 用 XFTP 上传到服务器：
-#    - prisma/schema.prisma
-#    - prisma/migrations/（如果创建了迁移）
+当前已验证可用的端口和账号如下：
 
-# ========== 服务器操作 ==========
-# 4. SSH 连接服务器
-ssh root@8.130.84.165
+- PostgreSQL
+  - 端口：`15432`
+  - 数据库：`admin_system`
+  - 用户名：`postgres`
+  - 密码：`123456`
+- MinIO
+  - API：`19000`
+  - 控制台：`19001`
+  - 用户名：`admin`
+  - 密码：`12345678`
+- Redis
+  - 端口：`16379`
+  - 密码：`123456`
+- Backend
+  - 端口：`3101`
 
-# 5. 执行部署脚本（会自动检测并执行迁移）
-/home/nestjs-project1/deploy.sh
+### 1.3 首次启动
 
-# ========== 如果部署脚本没有自动迁移 ==========
-# 6. 手动同步数据库
-docker exec -it nestjs-project1-backend sh -c "pnpm prisma db push"
+在 PowerShell 中执行：
 
-# 7. 重启 backend
-docker-compose restart backend
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+
+docker compose up -d postgres minio redis
+docker compose up -d --build backend
+
+docker exec nestjs-project1-backend pnpm prisma db push
+docker compose ps
 ```
 
-**预期结果：**
+### 1.4 访问地址
 
-* ✅ 自动检测 Prisma 变化
-* ✅ 执行数据库迁移
-* ✅ 重新生成 Prisma Client
-* ✅ 保留现有数据
+- Scalar 文档：`http://localhost:3101/api-docs`
+- OpenAPI JSON：`http://localhost:3101/api-docs-json`
+- MinIO 控制台：`http://localhost:19001`
 
----
+默认连接信息：
 
-### 🔄 场景三：同时修改了代码和数据库
+- PostgreSQL
+  - Host：`127.0.0.1`
+  - Port：`15432`
+  - Username：`postgres`
+  - Password：`123456`
+  - Database：`admin_system`
+- Redis
+  - Host：`127.0.0.1`
+  - Port：`16379`
+  - Password：`123456`
+- MinIO
+  - API：`http://localhost:19000`
+  - Console：`http://localhost:19001`
+  - Username：`admin`
+  - Password：`12345678`
 
-**适用情况：**
+### 1.5 日常启动
 
-* 既修改了 `src/` 代码
-* 又修改了 `prisma/schema.prisma`
-* 添加新功能通常是这种情况
+如果镜像已经构建过，平时只需要：
 
-**操作步骤：**
-
-bash
-
-```bash
-# ========== 本地操作 ==========
-# 1. 修改 prisma/schema.prisma
-# 2. 创建迁移
-pnpm prisma migrate dev --name your_migration_name
-
-# 3. 修改业务代码...
-
-# ========== 上传代码 ==========
-# 4. 用 XFTP 上传到服务器：
-#    - src/（整个目录或修改的文件）
-#    - prisma/schema.prisma
-#    - prisma/migrations/
-
-# ========== 服务器操作 ==========
-# 5. SSH 连接服务器
-ssh root@8.130.84.165
-
-# 6. 执行部署脚本
-/home/nestjs-project1/deploy.sh
-
-# 脚本会自动：
-# - 检测代码变化 ✅
-# - 检测数据库变化 ✅
-# - 重新构建镜像 ✅
-# - 执行数据库迁移 ✅
-# - 重启服务 ✅
-
-# ========== 验证部署 ==========
-# 7. 查看日志
-docker-compose logs -f backend
-
-# 8. 测试接口
-curl http://localhost:3001/api-docs
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+docker compose up -d
 ```
 
-## 📝 快速参考卡片
+### 1.6 日常停止
 
-### 需要上传的文件清单
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+docker compose down
+```
 
-<pre class="font-ui border-border-100/50 overflow-x-scroll w-full rounded border-[0.5px] shadow-[0_2px_12px_hsl(var(--always-black)/5%)]"><table class="bg-bg-100 min-w-full border-separate border-spacing-0 text-sm leading-[1.88888] whitespace-normal"><thead class="border-b-border-100/50 border-b-[0.5px] text-left"><tr class="[tbody>&]:odd:bg-bg-500/10"><th class="text-text-000 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] px-2 [&:not(:first-child)]:border-l-[0.5px]">修改类型</th><th class="text-text-000 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] px-2 [&:not(:first-child)]:border-l-[0.5px]">需要上传的文件/目录</th></tr></thead><tbody><tr class="[tbody>&]:odd:bg-bg-500/10"><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><strong>只改代码</strong></td><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">src/</code> 中修改的文件</td></tr><tr class="[tbody>&]:odd:bg-bg-500/10"><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><strong>只改数据库</strong></td><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">prisma/schema.prisma</code><br><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">prisma/migrations/</code>（如果有）</td></tr><tr class="[tbody>&]:odd:bg-bg-500/10"><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><strong>改依赖</strong></td><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">package.json</code><br><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">pnpm-lock.yaml</code></td></tr><tr class="[tbody>&]:odd:bg-bg-500/10"><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><strong>改配置</strong></td><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">.env.production.example</code><br><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">tsconfig.json</code><br><code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">.dockerignore</code> 等</td></tr><tr class="[tbody>&]:odd:bg-bg-500/10"><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]"><strong>全部更新</strong></td><td class="border-t-border-100/50 [&:not(:first-child)]:-x-[hsla(var(--border-100) / 0.5)] border-t-[0.5px] px-2 [&:not(:first-child)]:border-l-[0.5px]">除了 <code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">node_modules/</code>、<code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">dist/</code>、<code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">.git/</code> 外的所有文件</td></tr></tbody></table></pre>
+### 1.7 修改代码后的常用命令
 
----
+#### 只改了后端代码
 
-### 常用命令速查
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+docker compose up -d --build backend
+```
 
-bash
+#### 改了 Prisma 表结构
 
-```bash
-# ========== 部署相关 ==========
-# 一键部署（自动检测变化）
-/home/nestjs-project1/deploy.sh
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+docker compose up -d --build backend
+docker exec nestjs-project1-backend pnpm prisma db push
+```
 
-# 只重启 backend（代码已上传，快速重启）
-docker-compose restart backend
+#### 只想启动数据库和 MinIO
 
-# 重新构建 backend（强制更新）
-docker-compose up -d --build --no-deps backend
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+docker compose up -d postgres minio
+```
 
-# ========== 数据库相关 ==========
-# 同步数据库结构（推荐，保留数据）
-docker exec -it nestjs-project1-backend sh -c "pnpm prisma db push"
+### 1.8 常用排查命令
 
-# 执行迁移（如果创建了迁移文件）
-docker exec -it nestjs-project1-backend sh -c "pnpm prisma migrate deploy"
+查看容器状态：
 
-# 重新生成 Prisma Client
-docker exec -it nestjs-project1-backend sh -c "pnpm prisma generate"
+```powershell
+docker compose ps
+```
 
-# 查看数据库表结构
-docker exec -it nestjs-project1-postgres psql -U postgres -d admin_system -c "\d sys_user"
+查看后端日志：
 
-# ========== 日志查看 ==========
-# 查看实时日志
-docker-compose logs -f backend
+```powershell
+docker logs -f nestjs-project1-backend
+```
 
-# 查看最近 100 行日志
-docker-compose logs backend --tail 100
+查看 PostgreSQL 日志：
 
-# 查看所有容器状态
-docker-compose ps
+```powershell
+docker logs -f nestjs-project1-postgres
+```
 
-# ========== 故障排查 ==========
-# 进入 backend 容器
+查看 MinIO 日志：
+
+```powershell
+docker logs -f nestjs-project1-minio
+```
+
+进入后端容器：
+
+```powershell
 docker exec -it nestjs-project1-backend sh
+```
 
-# 进入数据库
+进入 PostgreSQL：
+
+```powershell
 docker exec -it nestjs-project1-postgres psql -U postgres -d admin_system
-
-# 重启所有服务
-docker-compose restart
-
-# 停止所有服务
-docker-compose down
-
-# 启动所有服务
-docker-compose up -d
 ```
 
-## 🚨 重要注意事项
+查看数据库表：
 
-### ⚠️ 避免数据丢失
-
-bash
-
-```bash
-# ❌ 不要用这个命令（会删除容器和可能的数据）
-docker-compose down
-
-# ✅ 改用这些命令
-docker-compose restart backend           # 重启 backend
-docker-compose up -d --no-deps backend  # 只重新构建 backend
+```powershell
+docker exec -it nestjs-project1-postgres psql -U postgres -d admin_system -c "\dt"
 ```
 
-### ⚠️ 数据库迁移前备份
+在容器内重新同步 Prisma：
 
-bash
+```powershell
+docker exec nestjs-project1-backend pnpm prisma db push
+```
+
+### 1.9 本地开发注意事项
+
+- 推荐直接使用 Docker 跑后端，不建议在 Windows 本机直接执行 `pnpm start`
+- 原因是当前这台机器上，Prisma 在本机直连 PostgreSQL 时会出现认证异常，但在 Docker 容器内运行正常
+- 如果后端容器第一次启动成功，MinIO 的业务桶会自动创建
+- 当前项目没有内置默认管理员账号，第一次启动后需要先创建用户再登录获取 JWT
+- PostgreSQL 使用了持久化目录 `./data/postgres`
+- MinIO 使用了持久化目录 `./data/minio`
+- Redis 使用了持久化目录 `./data/redis`
+
+首次初始化建议：
+
+1. 先调用 `POST /user` 创建首个管理员账号
+2. 再调用 `POST /auth/login` 获取 `access_token`
+3. 在 Scalar 文档页填入 `Authorization` 鉴权信息后再调试带锁接口
+
+---
+
+## 2. Linux 服务器更新部署
+
+### 2.1 适用场景
+
+适用于你远程服务器上的部署方式，配合 `deploy.sh` 使用。
+
+### 2.2 服务器目录
+
+默认服务器目录：
 
 ```bash
-# 重要数据库变更前，先备份
+/home/nestjs-project1
+```
+
+后端目录：
+
+```bash
+/home/nestjs-project1/backend
+```
+
+### 2.3 日常更新流程
+
+#### 只修改了代码
+
+```bash
+# 上传修改后的文件到服务器
+# 然后执行
+/home/nestjs-project1/deploy.sh
+```
+
+#### 修改了数据库结构
+
+```bash
+# 上传 prisma/schema.prisma 和 prisma/migrations
+/home/nestjs-project1/deploy.sh
+```
+
+#### 同时修改了代码和数据库
+
+```bash
+/home/nestjs-project1/deploy.sh
+```
+
+### 2.4 服务器常用命令
+
+只重启 backend：
+
+```bash
+docker-compose restart backend
+```
+
+重新构建 backend：
+
+```bash
+docker-compose up -d --build --no-deps backend
+```
+
+查看后端日志：
+
+```bash
+docker-compose logs -f backend
+```
+
+进入 backend 容器：
+
+```bash
+docker exec -it nestjs-project1-backend sh
+```
+
+执行 Prisma 同步：
+
+```bash
+docker exec -it nestjs-project1-backend sh -c "pnpm prisma db push"
+```
+
+执行 Prisma 迁移：
+
+```bash
+docker exec -it nestjs-project1-backend sh -c "pnpm prisma migrate deploy"
+```
+
+### 2.5 服务器注意事项
+
+- 不要轻易执行 `docker-compose down`
+- 优先使用 `docker-compose restart backend` 或 `docker-compose up -d --build --no-deps backend`
+- 数据库变更前建议先备份
+- `deploy.sh` 当前会用 `http://localhost:${BACKEND_HOST_PORT}/api-docs` 做健康检查
+
+备份命令：
+
+```bash
 docker exec nestjs-project1-postgres pg_dump -U postgres -d admin_system > backup_$(date +%Y%m%d).sql
 ```
 
-### ⚠️ 环境变量管理
+---
 
-bash
+## 3. 环境变量说明
 
-```bash
-# 本地开发：.env
-DATABASE_URL="postgresql://postgres:123456@localhost:5432/admin_system"
+### 本机开发 `.env`
+
+用于 Windows 本机读取：
+
+```env
+DATABASE_URL="postgresql://postgres:123456@localhost:15432/admin_system"
 MINIO_ENDPOINT=localhost
 REDIS_HOST=localhost
+```
 
-# 服务器生产：/home/nestjs-project1/backend/.env
+### Docker 后端 `.env.docker`
+
+用于 Docker 容器内后端读取：
+
+```env
 DATABASE_URL="postgresql://postgres:123456@postgres:5432/admin_system"
 MINIO_ENDPOINT=minio
 REDIS_HOST=redis
 ```
 
-## 📊 完整工作流程图
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   本地开发                            │
-├─────────────────────────────────────────────────────┤
-│  1. 修改代码/数据库                                   │
-│  2. 本地测试                                         │
-│  3. （数据库变更）创建迁移：                           │
-│     pnpm prisma migrate dev                         │
-└─────────────────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────┐
-│                 上传到服务器                          │
-├─────────────────────────────────────────────────────┤
-│  用 XFTP 上传：                                       │
-│  - src/ (代码变更)                                   │
-│  - prisma/ (数据库变更)                              │
-│  - package.json (依赖变更)                           │
-└─────────────────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────┐
-│                  执行部署脚本                         │
-├─────────────────────────────────────────────────────┤
-│  /home/nestjs-project1/deploy.sh                    │
-│                                                      │
-│  自动执行：                                           │
-│  1. 检测文件变化 (MD5 对比)                          │
-│  2. 备份当前版本                                      │
-│  3. 重新构建 backend（不停止数据库）                   │
-│  4. 执行数据库迁移（如果有）                          │
-│  5. 健康检查                                         │
-│  6. 保存部署记录                                      │
-└─────────────────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────┐
-│                   验证部署                            │
-├─────────────────────────────────────────────────────┤
-│  1. 查看日志：docker-compose logs -f backend         │
-│  2. 测试接口：http://8.130.84.165:3001/api-docs     │
-│  3. 功能测试                                         │
-└─────────────────────────────────────────────────────┘
-```
-
-## 🎯 最佳实践
-
-### 1. 日常小改动（只改代码）
-
-bash
-
-```bash
-# 修改文件 → XFTP 上传 → 执行部署脚本
-/home/nestjs-project1/deploy.sh
-```
-
-### 2. 添加新功能（代码+数据库）
-
-bash
-
-```bash
-# 本地创建迁移 → XFTP 上传 prisma/ 和 src/ → 执行部署脚本
-/home/nestjs-project1/deploy.sh
-```
-
-### 3. 紧急修复（快速重启）
-
-bash
-
-```bash
-# XFTP 上传 → 直接重启
-docker-compose restart backend
-```
-
-### 4. 数据库结构不匹配（像今天的问题）
-
-bash
-
-```bash
-# 手动同步数据库
-docker exec -it nestjs-project1-backend sh -c "pnpm prisma db push"
-docker-compose restart backend
-```
-
-## 🆘 故障快速恢复
-
-### 部署失败回滚
-
-bash
-
-```bash
-# 查看备份
-ls -lh /home/nestjs-project1/backups/
-
-# 恢复备份（如果需要）
-cp -r /home/nestjs-project1/backups/backup_20251108_143000/dist /home/nestjs-project1/backend/
-docker-compose restart backend
-```
-
-### 数据库问题
-
-bash
-
-```bash
-# 查看表结构
-docker exec -it nestjs-project1-postgres psql -U postgres -d admin_system -c "\d sys_user"
-
-# 同步数据库
-docker exec -it nestjs-project1-backend sh -c "pnpm prisma db push"
-```
-
-### 日志查看
-
-bash
-
-```bash
-# 实时日志
-docker-compose logs -f backend
-
-# 错误日志
-docker-compose logs backend | grep ERROR
-```
-
-## 📌 保存这个文档
-
-**建议保存位置：**
-
-* `/home/nestjs-project1/DEPLOYMENT.md`（服务器上）
-* 或者本地项目的 `README.md`
-
 ---
 
-**现在你有了完整的更新流程！** 🎉
+## 4. 推荐用法
 
-**日常更新只需三步：**
+如果你是在自己电脑上开发，推荐使用下面这套：
 
-1. 修改代码
-2. XFTP 上传
-3. 执行 `/home/nestjs-project1/deploy.sh`
+```powershell
+Set-Location 'd:\workspace_20260228\nest-front-backend\admin-backend'
+docker compose up -d --build
+docker exec nestjs-project1-backend pnpm prisma db push
+```
 
-简单高效！
+如果你是在服务器上更新代码，推荐使用：
+
+```bash
+/home/nestjs-project1/deploy.sh
+```
