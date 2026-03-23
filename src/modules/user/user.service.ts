@@ -4,6 +4,7 @@ import { PrismaService } from '../../infrastructure';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import * as bcrypt from 'bcrypt';
 import { userBaseSelect, userDetailSelect } from './user.select';
 
@@ -58,11 +59,50 @@ export class UserService {
   }
 
   // 查询所有用户
-  async findAll() {
-    const users = await this.prisma.user.findMany({
-      select: userDetailSelect,
-    });
-    return users;
+  async findAll(queryUserDto: QueryUserDto) {
+    const {
+      page = 1,
+      pageSize = 10,
+      username,
+      email,
+    } = queryUserDto;
+
+    const where: Prisma.UserWhereInput = {
+      ...(username
+        ? {
+            username: {
+              contains: username,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+      ...(email
+        ? {
+            email: {
+              contains: email,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    };
+
+    const [list, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: userDetailSelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   // 查询单个用户

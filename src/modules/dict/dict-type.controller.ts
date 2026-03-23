@@ -2,17 +2,20 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
   Delete,
   UseGuards,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { DictTypeService } from './dict-type.service';
 import { CreateDictTypeDto } from './dto/create-dict-type.dto';
 import { UpdateDictTypeDto } from './dto/update-dict-type.dto';
+import { QueryDictTypeDto } from './dto/query-dict-type.dto';
 import { JwtAuthGuard } from '../auth';
 
 @ApiTags('数据字典-类型管理')
@@ -35,8 +38,8 @@ export class DictTypeController {
   @ApiOperation({ summary: '获取字典类型列表（含数据项）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 401, description: '未授权' })
-  findAll() {
-    return this.dictTypeService.findAll();
+  findAll(@Query() queryDictTypeDto: QueryDictTypeDto) {
+    return this.dictTypeService.findAll(queryDictTypeDto);
   }
 
   @Get('code/:code')
@@ -58,8 +61,21 @@ export class DictTypeController {
     return this.dictTypeService.findOne(id);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: '完整更新字典类型' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '字典类型不存在' })
+  @ApiResponse({ status: 409, description: '字典编码已存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  replace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDictTypeDto: UpdateDictTypeDto,
+  ) {
+    return this.dictTypeService.update(id, updateDictTypeDto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: '更新字典类型' })
+  @ApiOperation({ summary: '部分更新字典类型' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
   @ApiResponse({ status: 409, description: '字典编码已存在' })

@@ -2,12 +2,14 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
   Delete,
   UseGuards,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RoleService } from './role.service';
@@ -15,6 +17,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignMenusDto } from './dto/assign-menus.dto';
 import { SetDataScopeDto } from './dto/set-data-scope.dto';
+import { QueryRoleDto } from './dto/query-role.dto';
 import { JwtAuthGuard } from '../auth';
 
 @ApiTags('角色管理')
@@ -37,8 +40,8 @@ export class RoleController {
   @ApiOperation({ summary: '获取角色列表' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 401, description: '未授权' })
-  findAll() {
-    return this.roleService.findAll();
+  findAll(@Query() queryRoleDto: QueryRoleDto) {
+    return this.roleService.findAll(queryRoleDto);
   }
 
   @Get(':id')
@@ -50,8 +53,21 @@ export class RoleController {
     return this.roleService.findOne(id);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: '完整更新角色' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResponse({ status: 409, description: '角色名称或编码已存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  replace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRoleDto: UpdateRoleDto,
+  ) {
+    return this.roleService.update(id, updateRoleDto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: '更新角色' })
+  @ApiOperation({ summary: '部分更新角色' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   @ApiResponse({ status: 409, description: '角色名称或编码已存在' })

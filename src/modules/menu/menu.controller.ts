@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -49,8 +50,21 @@ export class MenuController {
     return this.menuService.findOne(id);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: '完整更新菜单' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '菜单不存在或父菜单不存在' })
+  @ApiResponse({ status: 409, description: '不能将自己设置为父菜单' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  replace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateMenuDto: UpdateMenuDto,
+  ) {
+    return this.menuService.update(id, updateMenuDto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: '更新菜单' })
+  @ApiOperation({ summary: '部分更新菜单' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '菜单不存在或父菜单不存在' })
   @ApiResponse({ status: 409, description: '不能将自己设置为父菜单' })

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -14,6 +15,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery }
 import { DictDataService } from './dict-data.service';
 import { CreateDictDataDto } from './dto/create-dict-data.dto';
 import { UpdateDictDataDto } from './dto/update-dict-data.dto';
+import { QueryDictDataDto } from './dto/query-dict-data.dto';
 import { JwtAuthGuard } from '../auth';
 
 @ApiTags('数据字典-数据管理')
@@ -37,9 +39,8 @@ export class DictDataController {
   @ApiQuery({ name: 'dictTypeId', description: '字典类型ID（可选）', required: false, type: Number })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 401, description: '未授权' })
-  findAll(@Query('dictTypeId') dictTypeId?: string) {
-    const typeId = dictTypeId ? parseInt(dictTypeId, 10) : undefined;
-    return this.dictDataService.findAll(typeId);
+  findAll(@Query() queryDictDataDto: QueryDictDataDto) {
+    return this.dictDataService.findAll(queryDictDataDto);
   }
 
   @Get('type/:code')
@@ -61,8 +62,20 @@ export class DictDataController {
     return this.dictDataService.findOne(id);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: '完整更新字典数据项' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '字典数据不存在或字典类型不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  replace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDictDataDto: UpdateDictDataDto,
+  ) {
+    return this.dictDataService.update(id, updateDictDataDto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: '更新字典数据项' })
+  @ApiOperation({ summary: '部分更新字典数据项' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '字典数据不存在或字典类型不存在' })
   @ApiResponse({ status: 401, description: '未授权' })

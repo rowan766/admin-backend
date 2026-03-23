@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure';
 import { CreateDictDataDto } from './dto/create-dict-data.dto';
 import { UpdateDictDataDto } from './dto/update-dict-data.dto';
+import { QueryDictDataDto } from './dto/query-dict-data.dto';
 
 @Injectable()
 export class DictDataService {
@@ -27,22 +28,64 @@ export class DictDataService {
   }
 
   // 获取字典数据列表（支持按字典类型ID筛选）
-  async findAll(dictTypeId?: number) {
-    const where = dictTypeId ? { dictTypeId } : {};
+  async findAll(queryDictDataDto: QueryDictDataDto) {
+    const {
+      page = 1,
+      pageSize = 10,
+      dictTypeId,
+      label,
+      value,
+      status,
+    } = queryDictDataDto;
 
-    return await this.prisma.dictData.findMany({
-      where,
-      orderBy: { sort: 'asc' },
-      include: {
-        dictType: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
+    const where = {
+      ...(dictTypeId ? { dictTypeId } : {}),
+      ...(label
+        ? {
+            label: {
+              contains: label,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
+      ...(value
+        ? {
+            value: {
+              contains: value,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
+      ...(typeof status === 'number' ? { status } : {}),
+    };
+
+    const include = {
+      dictType: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
         },
       },
-    });
+    };
+
+    const [list, total] = await Promise.all([
+      this.prisma.dictData.findMany({
+        where,
+        orderBy: { sort: 'asc' },
+        include,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.dictData.count({ where }),
+    ]);
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   // 获取单个字典数据项

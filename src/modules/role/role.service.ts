@@ -4,6 +4,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignMenusDto } from './dto/assign-menus.dto';
 import { SetDataScopeDto } from './dto/set-data-scope.dto';
+import { QueryRoleDto } from './dto/query-role.dto';
 
 @Injectable()
 export class RoleService {
@@ -35,44 +36,87 @@ export class RoleService {
   }
 
   // 获取角色列表
-  async findAll() {
-    return await this.prisma.role.findMany({
-      orderBy: { sort: 'asc' },
-      include: {
-        users: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                nickname: true,
-              },
+  async findAll(queryRoleDto: QueryRoleDto) {
+    const {
+      page = 1,
+      pageSize = 10,
+      name,
+      code,
+      status,
+    } = queryRoleDto;
+
+    const where = {
+      ...(name
+        ? {
+            name: {
+              contains: name,
+              mode: 'insensitive' as const,
             },
-          },
-        },
-        menus: {
-          include: {
-            menu: {
-              select: {
-                id: true,
-                name: true,
-                title: true,
-              },
+          }
+        : {}),
+      ...(code
+        ? {
+            code: {
+              contains: code,
+              mode: 'insensitive' as const,
             },
-          },
-        },
-        departments: {
-          include: {
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
+          }
+        : {}),
+      ...(typeof status === 'number' ? { status } : {}),
+    };
+
+    const include = {
+      users: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              nickname: true,
             },
           },
         },
       },
-    });
+      menus: {
+        include: {
+          menu: {
+            select: {
+              id: true,
+              name: true,
+              title: true,
+            },
+          },
+        },
+      },
+      departments: {
+        include: {
+          department: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    };
+
+    const [list, total] = await Promise.all([
+      this.prisma.role.findMany({
+        where,
+        orderBy: { sort: 'asc' },
+        include,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.role.count({ where }),
+    ]);
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   // 获取单个角色

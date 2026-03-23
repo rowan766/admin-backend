@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -9,6 +10,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import {
@@ -22,6 +24,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { UserBaseVo, UserDetailVo } from './vo';
 
 @ApiTags('用户管理')
@@ -44,8 +47,8 @@ export class UserController {
   @ApiOperation({ summary: '获取用户列表' })
   @ApiSuccessArrayResponse(UserDetailVo, { description: '获取成功' })
   @ApiResponse({ status: 401, description: '未授权' })
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() queryUserDto: QueryUserDto) {
+    return this.userService.findAll(queryUserDto);
   }
 
   @Get('profile')
@@ -71,6 +74,16 @@ export class UserController {
     return this.userService.updatePassword(req.user.id, updatePasswordDto);
   }
 
+  @Get('current/menus')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('Authorization')
+  @ApiOperation({ summary: '获取当前用户的菜单树（含按钮）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  getUserMenus(@Request() req) {
+    return this.userService.getUserMenus(req.user.id);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('Authorization')
@@ -82,10 +95,25 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
+  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('Authorization')
+  @ApiOperation({ summary: '完整更新用户信息' })
+  @ApiSuccessResponse(UserDetailVo, { description: '更新成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 409, description: '用户名或邮箱已存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  replace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.userService.update(id, updateUserDto);
+  }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('Authorization')
-  @ApiOperation({ summary: '更新用户信息' })
+  @ApiOperation({ summary: '部分更新用户信息' })
   @ApiSuccessResponse(UserDetailVo, { description: '更新成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 409, description: '用户名或邮箱已存在' })
@@ -120,15 +148,5 @@ export class UserController {
     @Body() assignRolesDto: AssignRolesDto,
   ) {
     return this.userService.assignRoles(id, assignRolesDto.roleIds);
-  }
-
-  @Get('current/menus')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('Authorization')
-  @ApiOperation({ summary: '获取当前用户的菜单树（含按钮）' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 401, description: '未授权' })
-  getUserMenus(@Request() req) {
-    return this.userService.getUserMenus(req.user.id);
   }
 }

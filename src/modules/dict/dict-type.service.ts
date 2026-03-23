@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../../infrastructure';
 import { CreateDictTypeDto } from './dto/create-dict-type.dto';
 import { UpdateDictTypeDto } from './dto/update-dict-type.dto';
+import { QueryDictTypeDto } from './dto/query-dict-type.dto';
 
 @Injectable()
 export class DictTypeService {
@@ -24,16 +25,51 @@ export class DictTypeService {
   }
 
   // 获取字典类型列表
-  async findAll() {
-    return await this.prisma.dictType.findMany({
-      orderBy: { sort: 'asc' },
-      include: {
-        items: {
-          where: { status: 1 },
-          orderBy: { sort: 'asc' },
-        },
-      },
-    });
+  async findAll(queryDictTypeDto: QueryDictTypeDto) {
+    const {
+      page = 1,
+      pageSize = 10,
+      name,
+      code,
+      status,
+    } = queryDictTypeDto;
+
+    const where = {
+      ...(name
+        ? {
+            name: {
+              contains: name,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
+      ...(code
+        ? {
+            code: {
+              contains: code,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
+      ...(typeof status === 'number' ? { status } : {}),
+    };
+
+    const [list, total] = await Promise.all([
+      this.prisma.dictType.findMany({
+        where,
+        orderBy: { sort: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.dictType.count({ where }),
+    ]);
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   // 获取单个字典类型

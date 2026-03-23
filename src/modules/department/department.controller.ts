@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -55,8 +56,20 @@ export class DepartmentController {
     return this.departmentService.findOne(id);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: '完整更新部门' })
+  @ApiSuccessResponse(DepartmentBaseVo, { description: '更新成功' })
+  @ApiResponse({ status: 404, description: '部门不存在' })
+  @ApiResponse({ status: 409, description: '部门编码已存在' })
+  replace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDepartmentDto: UpdateDepartmentDto,
+  ) {
+    return this.departmentService.update(id, updateDepartmentDto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: '更新部门' })
+  @ApiOperation({ summary: '部分更新部门' })
   @ApiSuccessResponse(DepartmentBaseVo, { description: '更新成功' })
   @ApiResponse({ status: 404, description: '部门不存在' })
   @ApiResponse({ status: 409, description: '部门编码已存在' })
