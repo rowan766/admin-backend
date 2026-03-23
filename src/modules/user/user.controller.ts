@@ -33,10 +33,13 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('Authorization')
   @ApiOperation({ summary: '创建用户' })
   @ApiSuccessResponse(UserBaseVo, { status: 201, description: '创建成功' })
   @ApiResponse({ status: 409, description: '用户名已存在' })
   @ApiResponse({ status: 404, description: '部门不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
