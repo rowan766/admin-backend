@@ -25,7 +25,7 @@ interface ApiTagGroupDefinition {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: true,
+    forceConsole: true,
   });
   const configService = app.get(ConfigService);
   const bootstrapConfig = getAppBootstrapConfig(configService);
@@ -51,15 +51,58 @@ async function bootstrap() {
 
   await app.listen(bootstrapConfig.port);
 
-  logger.log(
-    `Application is running on: http://${bootstrapConfig.appHost}:${bootstrapConfig.port}`,
+  const displayBaseUrl = buildDisplayBaseUrl(
+    bootstrapConfig.appHost,
+    bootstrapConfig.port,
   );
 
-  if (bootstrapConfig.swaggerEnabled) {
-    logger.log(
-      `Scalar docs: http://${bootstrapConfig.appHost}:${bootstrapConfig.port}/${bootstrapConfig.swaggerPath}`,
-    );
+  logStartupBanner(
+    displayBaseUrl,
+    bootstrapConfig.swaggerEnabled,
+    bootstrapConfig.swaggerPath,
+  );
+}
+
+function buildUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+}
+
+function buildDisplayBaseUrl(host: string, port: number): string {
+  return `http://${normalizeDisplayHost(host)}:${port}`;
+}
+
+function normalizeDisplayHost(host: string): string {
+  const normalizedHost = host.trim().replace(/^\[|\]$/g, '');
+
+  if (
+    normalizedHost === 'localhost' ||
+    normalizedHost === '127.0.0.1' ||
+    normalizedHost === '0.0.0.0' ||
+    normalizedHost === '::1' ||
+    normalizedHost === '::'
+  ) {
+    return 'localhost';
   }
+
+  return normalizedHost;
+}
+
+function logStartupBanner(
+  baseUrl: string,
+  swaggerEnabled: boolean,
+  swaggerPath: string,
+) {
+  const border = '='.repeat(72);
+
+  logger.log(border);
+  logger.log('  Admin Backend Started');
+  logger.log(`  Local:   ${baseUrl}`);
+
+  if (swaggerEnabled) {
+    logger.log(`  Swagger: ${buildUrl(baseUrl, swaggerPath)}`);
+  }
+
+  logger.log(border);
 }
 
 async function setupSwagger(
