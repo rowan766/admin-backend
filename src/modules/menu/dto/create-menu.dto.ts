@@ -7,10 +7,11 @@ export class CreateMenuDto {
   @IsOptional()
   parentId?: number;
 
-  @ApiProperty({ description: '菜单名称（路由name）', example: 'UserManage' })
+  @ApiProperty({ description: '菜单名称（菜单为路由name，按钮可省略）', example: 'UserManage', required: false })
   @IsString()
+  @IsOptional()
   @MaxLength(50)
-  name: string;
+  name?: string;
 
   @ApiProperty({ description: '菜单标题（显示名称）', example: '用户管理' })
   @IsString()

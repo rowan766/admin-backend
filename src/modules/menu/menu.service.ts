@@ -8,6 +8,68 @@ import { MenuTree } from './interfaces/menu-tree.interface';
 export class MenuService {
   constructor(private prisma: PrismaService) {}
 
+  private resolveButtonName(menu: {
+    name?: string | null;
+    permission?: string | null;
+    title?: string | null;
+  }) {
+    return menu.name?.trim() || menu.permission?.trim() || menu.title?.trim();
+  }
+
+  private normalizeMenuPayload(
+    menuDto: Partial<CreateMenuDto>,
+    existingMenu?: {
+      type?: string | null;
+      name?: string | null;
+      title?: string | null;
+      path?: string | null;
+      component?: string | null;
+      permission?: string | null;
+      icon?: string | null;
+      visible?: number | null;
+    },
+  ) {
+    const type = menuDto.type ?? existingMenu?.type;
+    const path = menuDto.path ?? existingMenu?.path;
+    const permission = menuDto.permission ?? existingMenu?.permission;
+    const buttonName = this.resolveButtonName({
+      ...existingMenu,
+      ...menuDto,
+    });
+
+    if (type === 'menu') {
+      if (!path) {
+        throw new ConflictException('菜单类型必须提供路由路径');
+      }
+
+      if (!(menuDto.name?.trim() || existingMenu?.name?.trim())) {
+        throw new ConflictException('菜单类型必须提供路由名称');
+      }
+
+      return {
+        ...menuDto,
+        name: menuDto.name?.trim() || existingMenu?.name?.trim(),
+      };
+    }
+
+    if (type === 'button') {
+      if (!permission) {
+        throw new ConflictException('按钮类型必须提供权限标识');
+      }
+
+      return {
+        ...menuDto,
+        name: buttonName,
+        path: null,
+        component: null,
+        icon: null,
+        visible: menuDto.visible ?? existingMenu?.visible ?? 1,
+      };
+    }
+
+    return menuDto;
+  }
+
   // 创建菜单
   async create(createMenuDto: CreateMenuDto) {
     // 如果有父菜单，检查父菜单是否存在
@@ -26,22 +88,16 @@ export class MenuService {
       }
     }
 
-    // 菜单类型必须有 path 和 component
-    if (createMenuDto.type === 'menu') {
-      if (!createMenuDto.path) {
-        throw new ConflictException('菜单类型必须提供路由路径');
-      }
-    }
-
-    // 按钮类型必须有 permission
-    if (createMenuDto.type === 'button') {
-      if (!createMenuDto.permission) {
-        throw new ConflictException('按钮类型必须提供权限标识');
-      }
-    }
+    const payload = this.normalizeMenuPayload(createMenuDto) as CreateMenuDto & {
+      name: string;
+      path?: string | null;
+      component?: string | null;
+      permission?: string | null;
+      icon?: string | null;
+    };
 
     return await this.prisma.menu.create({
-      data: createMenuDto,
+      data: payload,
     });
   }
 
@@ -93,29 +149,12 @@ export class MenuService {
       }
     }
 
-    // 菜单类型必须有 path 和 component
-    if (updateMenuDto.type === 'menu') {
-      if (updateMenuDto.path === undefined && !updateMenuDto.path) {
-        const existMenu = await this.findOne(id);
-        if (!existMenu.path) {
-          throw new ConflictException('菜单类型必须提供路由路径');
-        }
-      }
-    }
-
-    // 按钮类型必须有 permission
-    if (updateMenuDto.type === 'button') {
-      if (updateMenuDto.permission === undefined && !updateMenuDto.permission) {
-        const existMenu = await this.findOne(id);
-        if (!existMenu.permission) {
-          throw new ConflictException('按钮类型必须提供权限标识');
-        }
-      }
-    }
+    const existMenu = await this.findOne(id);
+    const payload = this.normalizeMenuPayload(updateMenuDto, existMenu);
 
     return await this.prisma.menu.update({
       where: { id },
-      data: updateMenuDto,
+      data: payload,
     });
   }
 
